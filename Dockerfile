@@ -1,44 +1,45 @@
-FROM node:18-alpine AS backend-build
+# Base image with Node.js
+FROM node:18-alpine AS base
 
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# Build backend
+# Install supervisor to manage multiple processes
+RUN npm install -g supervisor
+
+# Set working directory
+WORKDIR /app
+
+# Copy project structure first
+COPY package.json ./
+COPY frontend/package.json ./frontend/
+COPY backend/package.json ./backend/
+
+# Install dependencies for both applications
 WORKDIR /app/backend
-COPY backend/package.json ./
 RUN pnpm install
-COPY backend ./
-RUN pnpm build || echo "No build script for backend"
-
-FROM node:18-alpine AS frontend-build
-
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
-# Build frontend
 WORKDIR /app/frontend
-COPY frontend/package.json ./
 RUN pnpm install
-COPY frontend ./
+WORKDIR /app
+
+# Copy all application files
+COPY . .
+
+# Build the frontend
+WORKDIR /app/frontend
 RUN pnpm build
 
-FROM node:18-alpine AS production
+# Create a startup script to run both services
+WORKDIR /app
+RUN echo '#!/bin/sh\n\
+    cd /app/backend && pnpm start & \n\
+    cd /app/frontend && pnpm start & \n\
+    wait\n' > /app/start.sh
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
-# Set up backend
-WORKDIR /app/backend
-COPY --from=backend-build /app/backend ./
-
-# Set up frontend
-WORKDIR /app/frontend
-COPY --from=frontend-build /app/frontend ./
-
-# Add start script
-COPY start.sh /app/start.sh
 RUN chmod +x /app/start.sh
 
-EXPOSE 3000 8080
+# Expose both ports
+EXPOSE 8080 3000
 
+# Set the startup command
 CMD ["/app/start.sh"]
