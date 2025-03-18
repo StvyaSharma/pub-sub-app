@@ -4,14 +4,13 @@ FROM node:18-alpine AS base
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# Install supervisor to manage multiple processes
-RUN npm install -g supervisor
-
 # Set working directory
 WORKDIR /app
 
-# Copy project structure first
-COPY package.json ./
+# Create directory structure
+RUN mkdir -p frontend backend
+
+# Copy package.json files first (no root package.json)
 COPY frontend/package.json ./frontend/
 COPY backend/package.json ./backend/
 
@@ -20,10 +19,10 @@ WORKDIR /app/backend
 RUN pnpm install
 WORKDIR /app/frontend
 RUN pnpm install
-WORKDIR /app
 
 # Copy all application files
-COPY . .
+COPY frontend ./frontend
+COPY backend ./backend
 
 # Build the frontend
 WORKDIR /app/frontend
