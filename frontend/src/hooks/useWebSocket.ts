@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+// pub-sub-app/frontend/src/hooks/useWebSocket.ts
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Message, WebSocketMessage } from "@/types";
 
 export function useWebSocket(username: string) {
@@ -29,7 +30,7 @@ export function useWebSocket(username: string) {
         wsRef.current.onmessage = (event) => {
           try {
             const message = JSON.parse(event.data) as Message;
-            setMessages((prevMessages) => [message, ...prevMessages]);
+            setMessages((prevMessages) => [...prevMessages, message]); // Changed order - new messages at end
           } catch (error) {
             console.error("Error parsing message:", error);
           }
@@ -64,18 +65,22 @@ export function useWebSocket(username: string) {
     }
   }, [username]);
 
-  const sendMessage = (content: string) => {
-    if (content.trim() && connected && wsRef.current) {
-      const message: WebSocketMessage = {
-        type: "message",
-        content,
-      };
+  // Use useCallback to memoize the sendMessage function
+  const sendMessage = useCallback(
+    (content: string) => {
+      if (content.trim() && connected && wsRef.current) {
+        const message: WebSocketMessage = {
+          type: "message",
+          content,
+        };
 
-      wsRef.current.send(JSON.stringify(message));
-      return true;
-    }
-    return false;
-  };
+        wsRef.current.send(JSON.stringify(message));
+        return true;
+      }
+      return false;
+    },
+    [connected],
+  );
 
   return {
     messages,

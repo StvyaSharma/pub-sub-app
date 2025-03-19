@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { UsernameDialog } from "@/components/UsernameDialog";
 import { ConnectingDialog } from "@/components/ConnectingDialog";
@@ -13,21 +13,24 @@ export default function Home() {
   const { messages, connected, connecting, sendMessage } =
     useWebSocket(username);
 
-  const handleUsernameSubmit = (newUsername: string) => {
+  const handleUsernameSubmit = useCallback((newUsername: string) => {
     setUsername(newUsername);
-  };
+  }, []);
 
-  const handleSendMessage = (content: string) => {
-    sendMessage(content);
-  };
+  const handleSendMessage = useCallback(
+    (content: string) => {
+      sendMessage(content);
+    },
+    [sendMessage],
+  );
 
   return (
-    <div className="min-h-screen bg-background p-4">
+    <div className="min-h-[100dvh] bg-background p-4">
       {!username && <UsernameDialog onSubmit={handleUsernameSubmit} />}
       {connecting && <ConnectingDialog />}
 
       {username && (
-        <div className="h-[calc(100vh-2rem)]">
+        <div className="h-[calc(100dvh-2rem)]">
           <div className="flex flex-col h-full p-4">
             <ChatHeader username={username} connected={connected} />
             <MessageList messages={messages} currentUsername={username} />
