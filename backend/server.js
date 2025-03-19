@@ -6,14 +6,20 @@ const cors = require("cors");
 const app = express();
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "*", // Replace with your frontend URL
+    origin: process.env.FRONTEND_URL || "*",
     methods: ["GET", "POST"],
   }),
 );
 app.use(express.json());
 
 const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocket.Server({
+  server,
+  path: "/ws",
+  clientTracking: true,
+  // Add WebSocket server options
+  handleProtocols: () => "websocket",
+});
 
 // Store connected clients
 const clients = new Map();

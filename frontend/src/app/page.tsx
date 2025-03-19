@@ -15,39 +15,54 @@ export default function Home() {
   // Connect to WebSocket server
   useEffect(() => {
     if (username && !wsRef.current) {
-      // Use environment variable for WebSocket URL
-      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "";
-      wsRef.current = new WebSocket(wsUrl);
+      const wsUrl = `${process.env.NEXT_PUBLIC_WS_URL}/ws`; // Add /ws path
 
-      wsRef.current.onopen = () => {
-        console.log("Connected to WebSocket server");
-        setConnected(true);
+      console.log("Connecting to WebSocket server at:", wsUrl);
 
-        // Register username
-        const message: WebSocketMessage = {
-          type: "register",
-          username,
+      try {
+        wsRef.current = new WebSocket(wsUrl);
+
+        wsRef.current.onopen = () => {
+          console.log("Connected to WebSocket server");
+          setConnected(true);
+
+          // Register username
+          const message: WebSocketMessage = {
+            type: "register",
+            username,
+          };
+          wsRef.current?.send(JSON.stringify(message));
         };
 
-        wsRef.current?.send(JSON.stringify(message));
-      };
+        wsRef.current.onmessage = (event) => {
+          try {
+            const message = JSON.parse(event.data) as Message;
+            setMessages((prevMessages) => [message, ...prevMessages]);
+          } catch (error) {
+            console.error("Error parsing message:", error);
+          }
+        };
 
-      wsRef.current.onmessage = (event) => {
-        const message = JSON.parse(event.data) as Message;
-        setMessages((prevMessages) => [message, ...prevMessages]);
-      };
+        wsRef.current.onclose = (event) => {
+          console.log("WebSocket closed:", event);
+          setConnected(false);
+          wsRef.current = null;
 
-      wsRef.current.onclose = () => {
-        console.log("Disconnected from WebSocket server");
-        setConnected(false);
-        wsRef.current = null;
-      };
+          // Optionally implement reconnection logic
+          setTimeout(() => {
+            if (!wsRef.current) {
+              setUsername(""); // Reset username to trigger reconnection
+            }
+          }, 5000);
+        };
 
-      wsRef.current.onerror = (error) => {
-        console.error("WebSocket error:", error);
-      };
+        wsRef.current.onerror = (error) => {
+          console.error("WebSocket error:", error);
+        };
+      } catch (error) {
+        console.error("Error creating WebSocket connection:", error);
+      }
 
-      // Clean up on component unmount
       return () => {
         if (wsRef.current) {
           wsRef.current.close();
