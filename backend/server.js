@@ -4,7 +4,12 @@ const WebSocket = require("ws");
 const cors = require("cors");
 
 const app = express();
-app.use(cors());
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL || "*", // Replace with your frontend URL
+    methods: ["GET", "POST"],
+  }),
+);
 app.use(express.json());
 
 const server = http.createServer(app);
